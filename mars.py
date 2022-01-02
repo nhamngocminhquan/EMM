@@ -146,13 +146,30 @@ hdul.verify('fix')
 # 1: SCI img, 5: PHA, 7: LAT, 8: LONG, 9: HEIGHT, 10: INA
 interest = [1, 5, 7, 8, 9, 10]
 img = [hdul[i].data for i in interest]
+print(img[4])
 # Fixing data
 hdr = hdul[1].header
-w = hdr['NAXIS1']
-h = hdr['NAXIS2']
+# print(repr(hdr))
+w = 2048
+h = 1536
 mn = hdr['DATAMIN']
 mx = hdr['DATAMAX']
-# print(repr(hdr))
+rg = mx - mn
+mask = np.zeros((h, w), dtype=bool)
+max_altitude = 10
+for i in range(h):
+    for j in range(w):
+        if not np.isnan(img[0][i][j]):
+            if (img[4][i][j] < max_altitude):
+                img[0][i][j] = (img[0][i][j] - mn) * 1.0 / rg
+            else:
+                for k in range(len(interest)):
+                    img[k][i][j] = np.nan
+
+            # mask[i][j] = 1
+        # else:
+        # img[0][i][j] = 0
+
 hdul.close()
 # mn = min(img[0])
 # mx = max(img[0])
@@ -160,8 +177,34 @@ hdul.close()
 # img[0] = [(i - mn) * 1.0 / range for i in img[0]]
 # print(img[0])
 
+fig = plt.figure()
+radius = 1
+
+ax = fig.add_subplot(1, 2, 1, projection='3d')
+imgs = np.array(img[0])
+lats = np.array(np.deg2rad(img[2]))
+longs = np.array(np.deg2rad(img[3]))
+ax.plot_surface(radius * np.cos(lats) * np.cos(longs),
+                radius * np.cos(lats) * np.sin(longs),
+                radius * np.sin(lats),
+                rstride=1, cstride=1,
+                facecolors=cm.magma(imgs))
+
+ax.set_box_aspect((1, 1, 1))
+ax.set_xlim(-radius, radius)
+ax.set_ylim(-radius, radius)
+ax.set_zlim(-radius, radius)
+ax.view_init(azim=135, elev=5)
+
+# axImg = fig.add_subplot(1, 2, 1)
+# XX, YY = np.meshgrid(np.linspace(0, w - 1, w), np.linspace(0, h - 1, h))
+# axImg.imshow(img[0], cmap='gray', vmin=mn, vmax=mx)
+# axImg.imshow(img[4], cmap='gray')
+# axImg.imshow(np.sin(img[2]), cmap='gray')
+# print(min([img[4][i][j] for i in range(h) for j in range(w) if mask[i][j] == 1]))
+
 # Spectro view
-hdul = fits.open("emm_data/0225/emm_emr_l2_20210225t200327_0012_r_v00-01.fits")
+hdul = fits.open("emm_data/0224/emm_emr_l2_20210224t095920_0011_r_v00-01.fits")
 hdul.verify('fix')
 hdr = hdul[1].header
 # print(repr(hdr))
@@ -175,12 +218,10 @@ hdul.close()
 
 # Field 7 is max brightness temp
 # Fields 21 and 22 are latitudes and longitudes of IFOV
-fig = plt.figure()
-ax = fig.add_subplot(projection='3d')
-# print(max_temps)
+ax = fig.add_subplot(1, 2, 2, projection='3d')
 dstgui = []
 for i in range(len(data)):
-    if data[i][7] > 0.01:
+    if data[i][7] > 0.001 and (abs(data[i][21]) > 0.001 or abs(data[i][22]) > 0.001):
         dstgui.append(1)
     else:
         dstgui.append(0)
@@ -191,7 +232,6 @@ for i in range(len(data)):
 max_temps = [data[i][7] for i in range(len(data)) if dstgui[i] == 1]
 lats = [np.deg2rad(data[i][21]) for i in range(len(data)) if dstgui[i] == 1]
 longs = [np.deg2rad(data[i][22]) for i in range(len(data)) if dstgui[i] == 1]
-radius = 1
 
 ax.scatter(np.array(radius * np.cos(lats) * np.cos(longs)),
            np.array(radius * np.cos(lats) * np.sin(longs)),
@@ -202,14 +242,11 @@ ax.scatter(np.array(radius * np.cos(lats) * np.cos(longs)),
 #            np.array(radius * np.cos(lats) * np.sin(longs)),
 #            np.array(radius * np.sin(lats)))
 
-# ax.plot(np.array(radius * np.cos(lats) * np.cos(longs)),
-#            np.array(radius * np.cos(lats) * np.sin(longs)),
-#            np.array(radius * np.sin(lats)))
-
 ax.set_box_aspect((1, 1, 1))
 ax.set_xlim(-radius, radius)
 ax.set_ylim(-radius, radius)
 ax.set_zlim(-radius, radius)
+ax.view_init(azim=135, elev=5)
 
 # ax = fig.add_subplot(1, 1, 1)
 # max_temps = np.array([reading[7] for reading in data])
@@ -218,7 +255,6 @@ ax.set_zlim(-radius, radius)
 # ax.scatter(np.array(lats), np.array(longs), c=max_temps, cmap='plasma', alpha=1, s=np.array(dstgui)*10)
 # # for i in range(hdr['NAXIS2']):
 # #     ax.scatter(data[i][21], data[i][22], alpha=0.5, s=1.5)
-
 
 plt.show(block=True)
 
