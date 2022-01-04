@@ -141,8 +141,8 @@ img_files = [filename for filename in listdir(file_dir) if (isfile(join(file_dir
 fig = plt.figure()
 fig.canvas.manager.full_screen_toggle()
 radius = 1
-azim = 115
-elev = 10
+azim = 70
+elev = 12
 max_val = 280 # K
 min_val = 120 # K
 for index in range(len(fits_files)):

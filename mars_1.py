@@ -112,6 +112,7 @@ elev = 12
 # cb.set_label("Calibrated DN", labelpad=10)
 # fig.colorbar(cm.ScalarMappable(cmap=cm.gray, norm=imgs).set_array([]), ax=ax, shrink=0.5)
 
+# for index in range(len(fits_files)):
 # Spectro view
 hdul = fits.open(join(file_dir, fits_files[index]))
 # hdul = fits.open("emm_data/0224/emm_emr_l2_20210224t095920_0011_r_v00-01.fits")
@@ -205,10 +206,11 @@ cb.set_label("Max brightness temperature (K)", labelpad=10)
 # # for i in range(hdr['NAXIS2']):
 # #     ax.scatter(data[i][21], data[i][22], alpha=0.5, s=1.5)
 
-# fig = plt.gcf()
+# c_fig = plt.gcf()
 plt.show()  # block=True
-# fig.set_size_inches((11, 8.5), forward=False)
-# fig.savefig("7_1".format(index), dpi=300)
+# c_fig.set_size_inches((11, 8.5), forward=False)
+# c_fig.savefig("7_{}".format(index), dpi=300)
+# plt.clf()
 
 # Find time
 # Time in utc field diverges 3 mins from labeled time
