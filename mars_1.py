@@ -3,17 +3,18 @@ from astropy.io import fits
 from astropy.time import TimeDelta, Time
 from astropy import units as u
 import emm_api as ep
+from matplotlib import cm
+from matplotlib import patches
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from matplotlib import cm
 import numpy as np
 from os import listdir
 from os.path import isfile, join
 import pickle
 import scipy.interpolate as spint
 
-PI = 3.141592653589793238
+PI = 180 # 3.141592653589793238
 
 # Get files
 file_dir = "emm_data/0224"
@@ -81,8 +82,8 @@ hdul.close()
 fig = plt.figure()
 fig.canvas.manager.full_screen_toggle()
 radius = 1
-azim = 105
-elev = 10
+azim = 70
+elev = 12
 
 # Plot help
 # https://stackoverflow.com/a/42927880
@@ -139,30 +140,23 @@ for i in range(len(data)):
 # lats = [np.deg2rad(reading[21]) for reading in data]
 # longs = [np.deg2rad(reading[22]) for reading in data]
 max_temps = [data[i][7] for i in range(len(data)) if dstgui[i] == 1]
-lats = [np.deg2rad(data[i][21]) for i in range(len(data)) if dstgui[i] == 1]
-longs = [np.deg2rad(data[i][22]) for i in range(len(data)) if dstgui[i] == 1]
+lats = [data[i][21] for i in range(len(data)) if dstgui[i] == 1]
+longs = [data[i][22] for i in range(len(data)) if dstgui[i] == 1]
 
+# Surround OG map with 6 copies for boundary condition
 p_lats = lats + lats + lats + (-np.array(lats) + PI).tolist() + (-np.array(lats) + PI).tolist() + \
          (-np.array(lats) - PI).tolist() + (-np.array(lats) - PI).tolist()
 p_longs = longs + (np.array(longs) + 2 * PI).tolist() + (np.array(longs) - 2 * PI).tolist() + \
          (-np.array(longs) + PI).tolist() + (-np.array(longs) - PI).tolist() + \
          (-np.array(longs) + PI).tolist() + (-np.array(longs) - PI).tolist()
 p_max_temps = max_temps + max_temps + max_temps + max_temps + max_temps + max_temps + max_temps
-xy_bound = [-PI * 1.5, PI * 1.5, (-PI / 2) * 1.5, (PI / 2) * 1.5]
 
 ax = fig.add_subplot(1, 2, 1)
+xy_bound = [-PI * 1.5, PI * 1.5, (-PI / 2) * 1.5, (PI / 2) * 1.5]
 XX, YY = np.mgrid[xy_bound[0]:xy_bound[1]:1080j, xy_bound[2]:xy_bound[3]:540j]
-# Surround OG map with 6 copies for boundary condition
 ZZ = spint.griddata(
-    list(zip(p_longs, p_lats
-        # longs + (np.array(longs) + 2 * PI).tolist() + (np.array(longs) - 2 * PI).tolist() +
-        # (-np.array(longs) + PI).tolist() + (-np.array(longs) - PI).tolist() +
-        # (-np.array(longs) + PI).tolist() + (-np.array(longs) - PI).tolist(),
-        # lats + lats + lats + (-np.array(lats) + PI).tolist() + (-np.array(lats) + PI).tolist() +
-        # (-np.array(lats) - PI).tolist() + (-np.array(lats) - PI).tolist()
-    )),
+    list(zip(p_longs, p_lats)),
     p_max_temps,
-    # max_temps + max_temps + max_temps + max_temps + max_temps + max_temps + max_temps,
     (XX, YY), method='cubic'
 )
 mn = min(max_temps)
@@ -170,19 +164,20 @@ mx = max(max_temps)
 ax.imshow(ZZ.T, extent=(xy_bound[0], xy_bound[1], xy_bound[2], xy_bound[3]), origin='lower',
           cmap='plasma', vmin=mn, vmax=mx)
 ax.scatter(p_longs, p_lats, c=p_max_temps, cmap='plasma', marker='o',
-           vmin=mn, vmax=mx, edgecolor='white', s=12, linewidth=0.5)
-# ax.imshow(img[0], cmap='gray', vmin=mn, vmax=mx)
-# ax.imshow(img[4], cmap='gray')
-# ax.imshow(np.sin(img[2]), cmap='gray')
+           vmin=mn, vmax=mx, edgecolor='white', s=8, linewidth=0.5)
 ax.set_aspect(1)
 ax.set_title("EMIRS max brightness temperature" + "\n" +
-             "Equirectangular projection with cubic interpolation" + "\n" + utc + " -\n" + utc2)
-# ax.set_xticks(np.arange(-radius, radius, 0.5))
-# ax.set_yticks(np.arange(-radius, radius, 0.5))
+             "Equirectangular projection with cubic interpolation" + "\n" + utc + " -\n" + utc2, pad=12)
 ax.set_xlim(xy_bound[0], xy_bound[1])
 ax.set_ylim(xy_bound[2], xy_bound[3])
-ax.set_xlabel("Longitude (rad)")
-ax.set_ylabel("Latitude (rad)")
+ax.set_xlabel("Longitude (deg)")
+ax.set_ylabel("Latitude (deg)")
+rect = patches.Rectangle((-PI, -PI/2), 2 * PI, PI, linewidth=1,
+                         linestyle='dotted', edgecolor='w', facecolor='none')
+ax.add_patch(rect)
+
+lats = np.deg2rad(lats)
+longs = np.deg2rad(longs)
 
 ax = fig.add_subplot(1, 2, 2, projection='3d')
 sc = ax.scatter(np.array(radius * np.cos(lats) * np.cos(longs)),
@@ -191,7 +186,7 @@ sc = ax.scatter(np.array(radius * np.cos(lats) * np.cos(longs)),
                 c=max_temps, cmap='plasma', marker='o', vmin=mn, vmax=mx)
 
 ax.set_box_aspect((1, 1, 1))
-ax.set_title("EMIRS max brightness temp on unit sphere" + "\n" + utc + " -\n" + utc2, pad=-10)
+ax.set_title("EMIRS max brightness temperature\non unit sphere" + "\n" + utc + " -\n" + utc2, pad=-20)
 ax.set_xticks(np.arange(-radius, radius, 0.5))
 ax.set_yticks(np.arange(-radius, radius, 0.5))
 ax.set_zticks(np.arange(-radius, radius, 0.5))
@@ -210,8 +205,10 @@ cb.set_label("Max brightness temperature (K)", labelpad=10)
 # # for i in range(hdr['NAXIS2']):
 # #     ax.scatter(data[i][21], data[i][22], alpha=0.5, s=1.5)
 
+# fig = plt.gcf()
 plt.show()  # block=True
-# plt.savefig("6_{}".format(index), dpi=200)
+# fig.set_size_inches((11, 8.5), forward=False)
+# fig.savefig("7_1".format(index), dpi=300)
 
 # Find time
 # Time in utc field diverges 3 mins from labeled time
