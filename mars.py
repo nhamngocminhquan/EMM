@@ -138,6 +138,13 @@ img_files = [filename for filename in listdir(file_dir) if (isfile(join(file_dir
 # print(fits_files)
 # print(img_files)
 
+fig = plt.figure()
+fig.canvas.manager.full_screen_toggle()
+radius = 1
+azim = 115
+elev = 10
+max_val = 280 # K
+min_val = 120 # K
 for index in range(len(fits_files)):
     # hdul = fits.open("emm_emr_l2_20210305t094430_0017_r_v00-01.fits")
     # hdul = fits.open("emm_data/emm_emr_l2_20210308t045230_0019_r_v00-01.fits")
@@ -185,12 +192,6 @@ for index in range(len(fits_files)):
     # range = mx - mn
     # img[0] = [(i - mn) * 1.0 / range for i in img[0]]
     # print(img[0])
-
-    fig = plt.figure()
-    fig.canvas.manager.full_screen_toggle()
-    radius = 1
-    azim = 105
-    elev = 10
 
     # Plot help
     # https://stackoverflow.com/a/42927880
@@ -261,7 +262,7 @@ for index in range(len(fits_files)):
     sc = ax.scatter(np.array(radius * np.cos(lats) * np.cos(longs)),
                     np.array(radius * np.cos(lats) * np.sin(longs)),
                     np.array(radius * np.sin(lats)),
-                    c=max_temps, cmap='plasma', marker='o')
+                    c=max_temps, cmap='plasma', marker='o', vmax=max_val, vmin=min_val)
 
     # ax.plot(np.array(radius * np.cos(lats) * np.cos(longs)),
     #            np.array(radius * np.cos(lats) * np.sin(longs)),
@@ -289,6 +290,7 @@ for index in range(len(fits_files)):
 
     # plt.show() # block=True
     plt.savefig("6_{}".format(index), dpi=200)
+    plt.clf()
 
 # Find time
 # Time in utc field diverges 3 mins from labeled time
