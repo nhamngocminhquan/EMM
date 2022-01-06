@@ -8,8 +8,6 @@ import emm_api as ep
 import matplotlib
 from matplotlib import cm
 from matplotlib import patches
-from matplotlib.patches import PathPatch
-from matplotlib.path import Path
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -24,70 +22,6 @@ from scipy.spatial import Delaunay
 import sys
 
 PI = 180  # 3.141592653589793238
-
-
-# Alpha convex hull code
-# https://stackoverflow.com/a/50159452
-def alpha_shape(points, alpha, only_outer=True):
-    """
-    Compute the alpha shape (concave hull) of a set of points.
-    :param points: np.array of shape (n,2) points.
-    :param alpha: alpha value.
-    :param only_outer: boolean value to specify if we keep only the outer border
-    or also inner edges.
-    :return: set of (i,j) pairs representing edges of the alpha-shape. (i,j) are
-    the indices in the points array.
-    """
-    assert points.shape[0] > 3, "Need at least four points"
-
-    def add_edge(edges, i, j):
-        """
-        Add a line between the i-th and j-th points,
-        if not in the list already
-        """
-        if (i, j) in edges or (j, i) in edges:
-            # already added
-            assert (j, i) in edges, "Can't go twice over same directed edge right?"
-            if only_outer:
-                # if both neighboring triangles are in shape, it is not a boundary edge
-                edges.remove((j, i))
-            return
-        edges.add((i, j))
-
-    tri = Delaunay(points)
-    # if ax is not None:
-    #     for t in tri.simplices:
-    #         ax.plot([points[t[0]][0], points[t[1]][0]], [points[t[0]][1], points[t[1]][1]], c='w')
-    #         ax.plot([points[t[2]][0], points[t[1]][0]], [points[t[2]][1], points[t[1]][1]], c='w')
-    #         ax.plot([points[t[0]][0], points[t[2]][0]], [points[t[0]][1], points[t[2]][1]], c='w')
-    #
-    # edges = set()
-    # for t in tri.simplices:
-    #     a = points[t[0]]
-    #     b = points[t[1]]
-    #     c = points[t[2]]
-
-    edges = set()
-    # Loop over triangles:
-    # ia, ib, ic = indices of corner points of the triangle
-    for ia, ib, ic in tri.simplices:
-        pa = points[ia]
-        pb = points[ib]
-        pc = points[ic]
-        # Computing radius of triangle circumcircle
-        # www.mathalino.com/reviewer/derivation-of-formulas/derivation-of-formula-for-radius-of-circumcircle
-        a = np.sqrt((pa[0] - pb[0]) ** 2 + (pa[1] - pb[1]) ** 2)
-        b = np.sqrt((pb[0] - pc[0]) ** 2 + (pb[1] - pc[1]) ** 2)
-        c = np.sqrt((pc[0] - pa[0]) ** 2 + (pc[1] - pa[1]) ** 2)
-        s = (a + b + c) / 2.0
-        area = np.sqrt(s * (s - a) * (s - b) * (s - c))
-        circum_r = a * b * c / (4.0 * area)
-        if circum_r < alpha:
-            add_edge(edges, ia, ib)
-            add_edge(edges, ib, ic)
-            add_edge(edges, ic, ia)
-    return edges
-
 
 # Get files
 file_dir = "emm_data/0224"
@@ -110,8 +44,6 @@ for index in range(len(fits_files)):
     #     hdr = hdul[1].header
     #     data = hdul[1].data
     #     hdul.close()
-    #     # print(data[0][9])
-    #     # print(data[hdr['NAXIS2'] - 1][9])
     #     print((Time(2000, format='jyear') + TimeDelta((data[0][0] + offset + data[0][1] * 1.0 / 65536) * u.s)).iso)
     #     print((Time(2000, format='jyear') + TimeDelta((data[hdr['NAXIS2'] - 1][0] + offset +
     #                                                    data[hdr['NAXIS2'] - 1][1] * 1.0 / 65536)*u.s)).iso)
@@ -226,7 +158,16 @@ for index in range(len(fits_files)):
               (-np.array(longs) + PI).tolist() + (-np.array(longs) - PI).tolist()
     p_max_temps = max_temps + max_temps + max_temps + max_temps + max_temps + max_temps + max_temps
 
-    ax = fig.add_subplot(1, 2, 1)
+    # Finding boundary of data
+    if PI == 180:
+        alpha = 0.025
+    else:
+        alpha = 0.025 * 180 / PI
+    points = np.array(list(zip(
+        [p for p in p_longs if (p < 3 * PI) and (p > -3 * PI)],
+        [p for p in p_lats if (p < 3 * PI / 2) and (p > -3 * PI / 2)]
+    )))
+    ashape = alphashape.alphashape(points, alpha)
 
     # Initial interpolation
     xy_bound = [-PI, PI, (-PI / 2), (PI / 2)]
@@ -237,6 +178,39 @@ for index in range(len(fits_files)):
         (XX, YY), method='cubic'
     )
     # print(ZZ)
+
+    # x = [XX[:, 0].tolist(), XX[:, 1].tolist()]
+    # y = [YY[:, 0].tolist(), YY[:, 1].tolist()]
+    # z = [ZZ[:, 0].tolist(), ZZ[:, 1].tolist()]
+    # for j in range(2):
+    #     i = 0
+    #     while i < len(x[j]):
+    #         if i == len(x[j]):
+    #             break
+    #
+    #         inshape = False
+    #         for poly in ashape.geoms:
+    #             if poly.contains(Point(x[j][i], y[j][i])):
+    #                 inshape = True
+    #
+    #         if not inshape:
+    #             x[j].pop(i)
+    #             y[j].pop(i)
+    #             z[j].pop(i)
+    #         else:
+    #             i = i + 1
+    #
+    # add_p_longs = x[0] + x[1] + \
+    #               (np.array(x[0]) - 2 * PI).tolist() + (np.array(x[1]) - 2 * PI).tolist() + \
+    #               (np.array(x[0]) + 2 * PI).tolist() + (np.array(x[1]) + 2 * PI).tolist()
+    # add_p_lats = y[0] + y[1] + \
+    #              y[0] + y[1] + \
+    #              y[0] + y[1]
+    # # print(add_p_lats, add_p_longs)
+    # add_p_max_temps = ([sum(z[0]) / len(z[0])] * len(z[0])) + ([sum(z[1]) / len(z[1])] * len(z[1])) + \
+    #                   ([sum(z[0]) / len(z[0])] * len(z[0])) + ([sum(z[1]) / len(z[1])] * len(z[1])) + \
+    #                   ([sum(z[0]) / len(z[0])] * len(z[0])) + ([sum(z[1]) / len(z[1])] * len(z[1]))
+
     add_p_longs = XX[:, 0].tolist() + XX[:, 1].tolist() + \
                   (np.array(XX[:, 0]) - 2 * PI).tolist() + (np.array(XX[:, 0]) - 2 * PI).tolist() + \
                   (np.array(XX[:, 0]) + 2 * PI).tolist() + (np.array(XX[:, 0]) + 2 * PI).tolist()
@@ -262,6 +236,8 @@ for index in range(len(fits_files)):
         p_max_temps + add_p_max_temps,
         (XX, YY), method='cubic'
     )
+
+    ax = fig.add_subplot(1, 2, 1)
     mn = 100  # min(max_temps)
     mx = 300  # max(max_temps)
     ax.imshow(ZZ.T, extent=(xy_bound[0], xy_bound[1], xy_bound[2], xy_bound[3]), origin='lower',
@@ -279,70 +255,15 @@ for index in range(len(fits_files)):
                              linestyle='dotted', edgecolor='w', facecolor='none')
     ax.add_patch(rect)
 
-    if PI == 180:
-        alpha = 0.025
-    else:
-        alpha = 0.025 * 180 / PI
-    # for i in range(len(longs)):
-    #     if longs[i] < 0:
-    #         longs[i] = longs[i] + 2 * PI
+    # pp_longs = [p for p in p_longs if (p < 3 * PI) and (p > -3 * PI)]
+    # pp_lats = [p for p in p_lats if (p < 3 * PI / 2) and (p > -3 * PI / 2)]
+    # points = np.array(list(zip([float(i) for i in pp_longs], [float(i) for i in pp_lats])))
 
-    pp_longs = [p for p in p_longs if (p < 3 * PI) and (p > -3 * PI)]
-    pp_lats = [p for p in p_lats if (p < 3 * PI / 2) and (p > -3 * PI / 2)]
-    points = np.array(list(zip([float(i) for i in pp_longs], [float(i) for i in pp_lats])))
-    # alpha_shape(points, ax)
-    # ashape = alpha_shape(points, alpha=40, only_outer=True)
-    # print(ashape)
-    # for i, j in ashape:
-    #     ax.plot(points[[i, j], 0], points[[i, j], 1])
-
-    # for i in range(len(longs)):
-    #     if longs[i] > PI:
-    #         longs[i] = longs[i] - 2 * PI
-
-    # print(points)
-    # ashape = alpha_shape(points, alpha=0.25, only_outer=True)
-    # print(ashape)
-
-    # np.random.seed(0)
-    # x = 100.0 * np.random.rand(2000)
-    # y = 100.0 * np.random.rand(2000) - 50.0
-    # inside = ((x ** 2 + y ** 2 > 1.0) & ((x - 3) ** 2 + y ** 2 > 1.0) & ((x - 1.5) ** 2 + y ** 2 > 0.09))
-    # points = np.vstack([x[inside], y[inside]]).T
-    # print(points)
-
-    # Computing the alpha shape
-    # edges = alpha_shape(points, alpha=0.25, only_outer=True)
-    # print(edges)
-    # for i, j in edges:
-    #     ax.plot(points[[i, j], 0], points[[i, j], 1])
-
-    ashape = alphashape.alphashape(points, alpha)
-    # poly = shapely.geometry.MultiPolygon(ashape)
-    # print(ashape.propeties)
-    # print(len(ashape.geoms))
-    # patch = PathPatch(
-    #     Path.make_compound_path(
-    #         Path(np.asarray(ashape.geoms.exterior.coords)[:, :2]),
-    #         *[Path(np.asarray(ring.coords)[:, :2]) for ring in polygon.interiors]
-    #     )
-    # )
-    # for point in points:
-    #     print(point, ashape.contains(point))
-    # mycoordslist = [poly.exterior.coords for poly in ashape.geoms]
-    # mycoordslist = [poly.exterior.coords for poly in ashape.geoms]
-    # ax.plot(mycoordslist)
-    # ashape
-    # print(ashape.geoms)
-    # print(ashape.convex_hull)
-    # ax.plot(*ashape.exterior.xy)
-    # print(ashape.convex_hull)
-    # ax.add_patch(patches.Polygon(ashape))
     ax.add_patch(PolygonPatch(ashape, alpha=.4, linewidth=0.5,
-                 linestyle='-', edgecolor='w', facecolor='none'))
+                              linestyle='-', edgecolor='w', facecolor='none'))
 
     ax = fig.add_subplot(1, 2, 2, projection='3d')
-    res = 1
+    res = 6
     xy_bound = [-PI, PI, (-PI / 2), (PI / 2)]
     XX, YY = np.mgrid[xy_bound[0]:xy_bound[1]:(180j * res), xy_bound[2]:xy_bound[3]:(90j * res)]
     ZZ = spint.griddata(
@@ -371,7 +292,7 @@ for index in range(len(fits_files)):
     sf = ax.plot_surface(radius * np.cos(YY) * np.cos(XX),
                          radius * np.cos(YY) * np.sin(XX),
                          radius * np.sin(YY),
-                         rstride=2, cstride=2,
+                         rstride=1, cstride=1,
                          edgecolors=None,
                          facecolors=cm.plasma(norm(ZZ)))
 
@@ -379,7 +300,7 @@ for index in range(len(fits_files)):
                     np.array(radius * np.cos(lats) * np.sin(longs)),
                     np.array(radius * np.sin(lats)),
                     c=max_temps, cmap='plasma', marker='o',
-                    edgecolor='white', s=1, linewidth=0.5, vmin=mn, vmax=mx)
+                    edgecolor=None, s=1, linewidth=0.5, vmin=mn, vmax=mx)
 
     ax.set_box_aspect((1, 1, 1))
     ax.set_title("EMIRS max brightness temperature\non unit sphere" + "\n" + utc + " -\n" + utc2, pad=-20)
@@ -393,16 +314,8 @@ for index in range(len(fits_files)):
     cb = fig.colorbar(sc, ax=ax, shrink=0.5)
     cb.set_label("Max brightness temperature (K)", labelpad=10)
 
-    # ax = fig.add_subplot(1, 1, 1)
-    # max_temps = np.array([reading[7] for reading in data])
-    # lats = np.array([reading[21] for reading in data])
-    # longs = np.array([reading[22] for reading in data])
-    # ax.scatter(np.array(lats), np.array(longs), c=max_temps, cmap='plasma', alpha=1, s=np.array(dstgui)*10)
-    # # for i in range(hdr['NAXIS2']):
-    # #     ax.scatter(data[i][21], data[i][22], alpha=0.5, s=1.5)
-
     c_fig = plt.gcf()
-    plt.show()  # block=True
+    # plt.show()  # block=True
     c_fig.set_size_inches((11, 8.5), forward=False)
     c_fig.savefig("9_{}".format(index), dpi=300)
     plt.clf()

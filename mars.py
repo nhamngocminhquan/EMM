@@ -138,14 +138,15 @@ img_files = [filename for filename in listdir(file_dir) if (isfile(join(file_dir
 # print(fits_files)
 # print(img_files)
 
-fig = plt.figure()
-fig.canvas.manager.full_screen_toggle()
-radius = 1
-azim = 70
-elev = 12
-max_val = 280 # K
-min_val = 120 # K
 for index in range(len(fits_files)):
+    fig = plt.figure()
+    fig.canvas.manager.full_screen_toggle()
+    radius = 1
+    azim = 70
+    elev = 12
+    max_val = 280 # K
+    min_val = 120 # K
+
     # hdul = fits.open("emm_emr_l2_20210305t094430_0017_r_v00-01.fits")
     # hdul = fits.open("emm_data/emm_emr_l2_20210308t045230_0019_r_v00-01.fits")
     # hdul = fits.open("emm_data/emm_emr_l2_20210306t192330_0018_r_v00-01.fits")
@@ -158,6 +159,7 @@ for index in range(len(fits_files)):
     utc = hdul[0].header['DATE-OBS']
     utc = utc.partition('T')[0] + " " + utc.partition('T')[2]
     # print(repr(hdr))
+    print("there")
 
     # 1: SCI img, 5: PHA, 7: LAT, 8: LONG, 9: HEIGHT, 10: INA
     interest = [1, 5, 7, 8, 9, 10]
@@ -193,6 +195,8 @@ for index in range(len(fits_files)):
     # img[0] = [(i - mn) * 1.0 / range for i in img[0]]
     # print(img[0])
 
+    print("here")
+
     # Plot help
     # https://stackoverflow.com/a/42927880
     ax = fig.add_subplot(1, 2, 1, projection='3d')
@@ -203,7 +207,7 @@ for index in range(len(fits_files)):
     sf = ax.plot_surface(radius * np.cos(lats) * np.cos(longs),
                          radius * np.cos(lats) * np.sin(longs),
                          radius * np.sin(lats),
-                         rstride=12, cstride=12,
+                         rstride=1, cstride=1,
                          facecolors=cm.gray(norm(imgs)))
                          # facecolors=cm.gray(imgs))
 
@@ -288,9 +292,12 @@ for index in range(len(fits_files)):
     # # for i in range(hdr['NAXIS2']):
     # #     ax.scatter(data[i][21], data[i][22], alpha=0.5, s=1.5)
 
-    # plt.show() # block=True
+    # c_fig = plt.gcf()
+    plt.show() # block=True
     plt.savefig("6_{}".format(index), dpi=200)
-    plt.clf()
+    # c_fig.set_size_inches((11, 8.5), forward=False)
+    # c_fig.savefig("6_{}".format(index), dpi=300)
+    # plt.clf()
 
 # Find time
 # Time in utc field diverges 3 mins from labeled time
