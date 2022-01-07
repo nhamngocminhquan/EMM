@@ -11,6 +11,7 @@ import numpy as np
 from os import listdir
 from os.path import isfile, join
 import pickle
+plt.style.use('dark_background')
 
 # ep.get_sdc_token(user_name='QuanNham', password='irQPmFciRTa6ajP?')
 # print(ep.USER_TOKEN)
@@ -142,7 +143,7 @@ for index in range(len(fits_files)):
     fig = plt.figure()
     fig.canvas.manager.full_screen_toggle()
     radius = 1
-    azim = 70
+    azim = 75
     elev = 12
     max_val = 280 # K
     min_val = 120 # K
@@ -207,7 +208,7 @@ for index in range(len(fits_files)):
     sf = ax.plot_surface(radius * np.cos(lats) * np.cos(longs),
                          radius * np.cos(lats) * np.sin(longs),
                          radius * np.sin(lats),
-                         rstride=1, cstride=1,
+                         rstride=10, cstride=10,
                          facecolors=cm.gray(norm(imgs)))
                          # facecolors=cm.gray(imgs))
 
@@ -222,7 +223,7 @@ for index in range(len(fits_files)):
     ax.view_init(azim=azim, elev=elev)
     cb = fig.colorbar(cm.ScalarMappable(cmap=cm.gray, norm=norm), ax=ax, shrink=0.5)
     cb.set_label("Calibrated DN", labelpad=10)
-    # fig.colorbar(cm.ScalarMappable(cmap=cm.gray, norm=imgs).set_array([]), ax=ax, shrink=0.5)
+    # cb.outline.set_edgecolor('white')
 
     # axImg = fig.add_subplot(1, 2, 1)
     # XX, YY = np.meshgrid(np.linspace(0, w - 1, w), np.linspace(0, h - 1, h))
@@ -266,7 +267,8 @@ for index in range(len(fits_files)):
     sc = ax.scatter(np.array(radius * np.cos(lats) * np.cos(longs)),
                     np.array(radius * np.cos(lats) * np.sin(longs)),
                     np.array(radius * np.sin(lats)),
-                    c=max_temps, cmap='plasma', marker='o', vmax=max_val, vmin=min_val)
+                    c=max_temps, cmap='plasma', # edgecolor='white',
+                    marker='o', vmax=max_val, vmin=min_val)
 
     # ax.plot(np.array(radius * np.cos(lats) * np.cos(longs)),
     #            np.array(radius * np.cos(lats) * np.sin(longs)),
@@ -283,6 +285,7 @@ for index in range(len(fits_files)):
     ax.view_init(azim=azim, elev=elev)
     cb = fig.colorbar(sc, ax=ax, shrink=0.5)
     cb.set_label("Max brightness temperature (K)", labelpad=10)
+    # cb.outline.set_edgecolor('white')
 
     # ax = fig.add_subplot(1, 1, 1)
     # max_temps = np.array([reading[7] for reading in data])
@@ -292,12 +295,39 @@ for index in range(len(fits_files)):
     # # for i in range(hdr['NAXIS2']):
     # #     ax.scatter(data[i][21], data[i][22], alpha=0.5, s=1.5)
 
-    # c_fig = plt.gcf()
+    # Change ax colors
+    axes = fig.get_axes()
+    for a in axes:
+    #     a.tick_params(color='white', labelcolor='white')
+    #     for spine in a.spines.values():
+    #         spine.set_edgecolor('white')
+    #
+    #     a.title.set_color('white')
+    #     a.yaxis.label.set_color('white')
+    #     a.xaxis.label.set_color('white')
+        if a.name == "3d":
+            a.xaxis._axinfo["grid"]['linewidth'] = .5
+            a.yaxis._axinfo["grid"]['linewidth'] = .5
+            a.zaxis._axinfo["grid"]['linewidth'] = .5
+            # ax.zaxis._axinfo["grid"]['color'] = "#ee0009"
+
+            a.w_xaxis.pane.fill = False
+            a.w_yaxis.pane.fill = False
+            a.w_zaxis.pane.fill = False
+
+    #         a.zaxis.label.set_color('white')
+    #         a.grid(False)
+            # for pane in [a.w_xaxis.pane, a.w_yaxis.pane, a.w_zaxis.pane]:
+            #     pane.fill = False
+            #     pane.set_edgecolor('w')
+
+    c_fig = plt.gcf()
     plt.show() # block=True
-    plt.savefig("6_{}".format(index), dpi=200)
     # c_fig.set_size_inches((11, 8.5), forward=False)
     # c_fig.savefig("6_{}".format(index), dpi=300)
-    # plt.clf()
+    c_fig.savefig("6_{}".format(index), dpi=300, transparent=True)
+    plt.clf()
+    # plt.savefig("6_{}".format(index), dpi=200)
 
 # Find time
 # Time in utc field diverges 3 mins from labeled time

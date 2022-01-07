@@ -20,6 +20,7 @@ import pickle
 import scipy.interpolate as spint
 from scipy.spatial import Delaunay
 import sys
+plt.style.use('dark_background')
 
 PI = 180  # 3.141592653589793238
 
@@ -88,7 +89,7 @@ for index in range(len(fits_files)):
     fig = plt.figure()
     fig.canvas.manager.full_screen_toggle()
     radius = 1
-    azim = 70
+    azim = 75
     elev = 12
 
     # Plot help
@@ -263,7 +264,7 @@ for index in range(len(fits_files)):
                               linestyle='-', edgecolor='w', facecolor='none'))
 
     ax = fig.add_subplot(1, 2, 2, projection='3d')
-    res = 6
+    res = 1
     xy_bound = [-PI, PI, (-PI / 2), (PI / 2)]
     XX, YY = np.mgrid[xy_bound[0]:xy_bound[1]:(180j * res), xy_bound[2]:xy_bound[3]:(90j * res)]
     ZZ = spint.griddata(
@@ -292,7 +293,7 @@ for index in range(len(fits_files)):
     sf = ax.plot_surface(radius * np.cos(YY) * np.cos(XX),
                          radius * np.cos(YY) * np.sin(XX),
                          radius * np.sin(YY),
-                         rstride=1, cstride=1,
+                         rstride=10, cstride=10,
                          edgecolors=None,
                          facecolors=cm.plasma(norm(ZZ)))
 
@@ -313,11 +314,26 @@ for index in range(len(fits_files)):
     ax.view_init(azim=azim, elev=elev)
     cb = fig.colorbar(sc, ax=ax, shrink=0.5)
     cb.set_label("Max brightness temperature (K)", labelpad=10)
+    cb.outline.set_edgecolor('white')
+
+    # Change ax colors
+    axes = fig.get_axes()
+    for a in axes:
+        if a.name == "3d":
+            a.xaxis._axinfo["grid"]['linewidth'] = .5
+            a.yaxis._axinfo["grid"]['linewidth'] = .5
+            a.zaxis._axinfo["grid"]['linewidth'] = .5
+            # ax.zaxis._axinfo["grid"]['color'] = "#ee0009"
+
+            a.w_xaxis.pane.fill = False
+            a.w_yaxis.pane.fill = False
+            a.w_zaxis.pane.fill = False
 
     c_fig = plt.gcf()
     # plt.show()  # block=True
     c_fig.set_size_inches((11, 8.5), forward=False)
-    c_fig.savefig("9_{}".format(index), dpi=300)
+    # c_fig.savefig("9_{}".format(index), dpi=300)
+    c_fig.savefig("9_{}".format(index), dpi=300, transparent=True)
     plt.clf()
 
 # Find time
